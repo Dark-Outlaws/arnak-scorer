@@ -1,0 +1,10 @@
+# BGA 的原始源码 / 数据，不随仓库分发（需要时用 docs/download*.py 自行再取）
+docs/arnak.js
+docs/tooltips.js
+
+# 系统 / 编辑器杂物
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+*.tmp

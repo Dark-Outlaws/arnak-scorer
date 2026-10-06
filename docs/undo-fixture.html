@@ -1,0 +1,71 @@
+<!doctype html>
+<!--
+  撤销语义回归样本。日志里的“取消了他的行动”并没说是撤的哪一步，
+  所以不能无脑弹栈，否则会把上一次买进来的牌误删。
+  场景：
+    1) 买汽车(3) → 付1币 → 撤销        → 撤销撤的是付币，汽车必须还在
+    2) 买淘金盘(1) → 撤销              → 撤销撤的就是买牌，淘金盘必须消失
+  期望：卡牌分 = 3（只有汽车）
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak undo fixture</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round2"></div>
+  <div id="player_board_96725718"><div class="counter-number-guardian">0</div></div>
+  <div id="player_board_99001113"><div class="counter-number-guardian">0</div></div>
+  <div id="logs"></div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  const LINES = [
+    'P2将汽车放到其牌堆的底部',   // 买 汽车 item#6 = 3
+    'P2 pays 1 coin',              // 非归属动作
+    'P2取消了他的行动',            // 撤的是付币 → 汽车必须留下
+    'P2将淘金盘放到其牌堆的底部', // 买 淘金盘 item#8 = 1
+    'P2取消了他的行动'             // 撤的就是买牌 → 淘金盘必须消失
+  ];
+  const logs = document.getElementById('logs');
+  LINES.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.id = 'log_' + i;
+    d.className = 'log';
+    d.textContent = ' ' + t;
+    logs.appendChild(d);
+  });
+
+  function P(name) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: 0, research_book: 0, temple_rank: 1, idol: 0, idol_slot: 4 };
+  }
+  const gd = {
+    bird_temple: true, board_position: {}, research_bonus: [], round: 2,
+    players: { 96725718: P('P1'), 99001113: P('P2') },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  window.gameui = {
+    gamedatas: gd, player_id: 99001113,
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    const b = p && p.querySelector('.ap-tab[data-id="99001113"]');
+    if (b) b.click();
+    return {
+      errors: window.__errors,
+      foot: p ? (p.querySelector('.ap-round') || {}).textContent : null,
+      detail: p ? (p.querySelector('.ap-detail') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
+    };
+  };
+</script>
+</body>
+</html>

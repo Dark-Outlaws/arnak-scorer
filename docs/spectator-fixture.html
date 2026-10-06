@@ -1,0 +1,62 @@
+<!doctype html>
+<!--
+  观战视图回归样本：数据取自真实 BGA 观战页的 gameui.gamedatas。
+  要点：players 的键才是真实 id（18448016 / 92180313），每个玩家身上没有 id 字段，
+        current_player_id 也没有；gameui.player_id 是观战者自己（99001113）。
+  用法：起静态服务，打开此页，看 __report()。
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak spectator fixture</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round4"></div>
+  <div id="player_board_18448016"><div class="counter-number-guardian">2</div></div>
+  <div id="player_board_92180313"><div class="counter-number-guardian">5</div></div>
+  <div id="logs">
+    <div id="log_0" class="log"> P1 puts Sea Turtle to the bottom of their deck</div>
+    <div id="log_1" class="log"> P2 puts Horse to the bottom of their deck</div>
+    <div id="log_2" class="log"> P1 plays Aeroplane</div>
+    <div id="log_3" class="log"> P2 gains a fear</div>
+    <div id="log_4" class="log"> P1 exiles Sea Turtle</div>
+    <div id="log_5" class="log"> P2 ends their turn</div>
+  </div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  // 真实的观战态：玩家对象里没有 id
+  function P(name) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: 2, research_book: 1, temple_rank: 1, idol: 1, idol_slot: 1 };
+  }
+  const gd = {
+    bird_temple: false, board_position: {}, research_bonus: [], round: 1,
+    players: { 18448016: P('P1'), 92180313: P('P2') },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  window.gameui = {
+    gamedatas: gd,
+    player_id: 99001113,          // 观战者，不在 players 里
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    return {
+      mode: (p && p.querySelector('.ap-round')) ? p.querySelector('.ap-round').textContent : null,
+      errors: window.__errors,
+      tabs: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => b.dataset.id + ':' + b.textContent.trim().split('\n')[0]) : [],
+      active: (p && p.querySelector('.ap-tab.active')) ? p.querySelector('.ap-tab.active').dataset.id : null,
+      detail: p ? (p.querySelector('.ap-detail') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
+    };
+  };
+</script>
+</body>
+</html>

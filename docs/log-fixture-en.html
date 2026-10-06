@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  arnak-scorer 英文日志回归样本
+  用法：在本目录起个静态服务（python -m http.server），打开此页，看控制台的 __report()。
+  日志文本取自真实英文对局（__arnakLogDump 输出），改措辞后先跑这页。
+-->
+<html lang="en">
+<head><meta charset="utf-8"><title>arnak harness real</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round4"></div>
+  <div id="player_board_96725718"><div class="counter-number-guardian">3</div></div>
+  <div id="player_board_99001113"><div class="counter-number-guardian">1</div></div>
+  <div id="logs"></div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push({ msg: String(e.message), stack: String((e.error && e.error.stack) || '') }));
+
+  // 真实英文对局日志（取自 __arnakLogDump 输出），[文本, 卡牌标记]
+  const LINES = [
+    ['New artifact Crystal Earring is revealed', 'art#6'],
+    ['P1 puts Automobile to the bottom of their deck', 'item#6'],
+    ['P2 puts Dog to the bottom of their deck', 'item#36'],
+    ['P1 plays Whip', 'item#23'],
+    ['P1 exiles Whip', 'item#23'],
+    ['P2 gains a fear', '-'],
+    ['P1 receives the start player marker', '-'],
+    ['P2 cancels their move', '-'],
+    ['P1 reveals a big location from the deck', '-'],
+    ['Removing Crystal Earring from the supply', 'art#6'],
+    ['P1 draws 5 cards', '-'],
+    ['P2 passes', '-'],
+    ['P2 discards Fear for travel symbols', '-'],
+    ['P1 ends their turn23:14', '-'],
+  ];
+  const logs = document.getElementById('logs');
+  LINES.forEach((row, i) => {
+    const d = document.createElement('div');
+    d.id = 'log_' + i;
+    d.className = 'log';
+    d.textContent = ' ' + row[0];
+    if (row[1] !== '-') {
+      const tt = document.createElement('div');
+      tt.className = 'notif-inner-tooltip';
+      tt.setAttribute('data-type', row[1].split('#')[0]);
+      tt.setAttribute('data-num', row[1].split('#')[1]);
+      d.insertBefore(tt, d.firstChild);
+    }
+    logs.appendChild(d);
+  });
+
+  // 真实形态：players 的键才是 id，玩家对象里没有 id 字段（实测对局/观战皆如此）
+  function P(name) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: 2, research_book: 1, temple_rank: 1, idol: 1, idol_slot: 1 };
+  }
+  const gd = {
+    bird_temple: false, board_position: {}, research_bonus: [], round: 1,
+    players: { 96725718: P('P1'), 99001113: P('P2') },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {}, notif_putToDeck() {} };
+  window.gameui = {
+    gamedatas: gd, player_id: 99001113,
+    game: { tooltips: { cardName(t, n) { if (t === 'item') return 'Item' + n; if (t === 'art') return 'Art' + n; if (t === 'fear') return 'Fear'; if (t === 'fundcar') return 'Funding'; if (t === 'explorecar') return 'Exploration'; return 'X'; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    return {
+      errors: window.__errors,
+      panel: !!p,
+      tabs: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => b.dataset.id + ':' + b.textContent.trim()) : [],
+      active: p && p.querySelector('.ap-tab.active') ? p.querySelector('.ap-tab.active').dataset.id : null,
+      detail: p ? (p.querySelector('.ap-detail') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
+    };
+  };
+</script>
+</body>
+</html>

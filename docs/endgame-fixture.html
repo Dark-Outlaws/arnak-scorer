@@ -1,0 +1,77 @@
+<!--
+  终局回归样本。只验证两件事：
+    1) 总分 = 插件自算（不再读 gameui.counters；官方分只在 scoreBreakdown 覆盖卡牌/恐惧时参与）
+    2) 这里故意把 counters 摆成官方值，面板也不该拿它当总分
+  期望：总分仍等于插件自己的逐项和，页脚不出现“官方结算”。
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak endgame fixture</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round5"></div>
+  <div id="player_board_96725718">
+    <div class="counter-number-guardian">4</div>
+    <div class="temple-wrap"><div class="temple-tile bronze"></div></div>
+  </div>
+  <div id="player_board_99001113">
+    <div class="counter-number-guardian">4</div>
+    <div class="temple-wrap"><div class="temple-tile gold"></div></div>
+  </div>
+  <div id="logs">
+    <!-- 故意只留少量日志：自算必然偏少，用来验证官方覆盖是否生效 -->
+    <div id="log_2" class="log"> P1将斧头放到其牌堆的底部</div>
+    <div id="log_1" class="log"> P2将汽车放到其牌堆的底部</div>
+    <div id="log_0" class="log"> P2 结束其回合</div>
+  </div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  function P(name, glass, book, rank, idol, slot, bd) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: glass, research_book: book, temple_rank: rank, idol: idol, idol_slot: slot,
+      scoreBreakdown: bd };
+  }
+  const gd = {
+    bird_temple: true, board_position: {}, research_bonus: [], round: 5,
+    gamestate: { name: 'gameEnd' },
+    players: {
+      96725718: P('P1', 14, 9, 2, 0, 0, { cards: 10, fear: 0 }),
+      99001113: P('P2', 14, 12, 1, 3, 0, { cards: 16, fear: -1 }),
+    },
+    itemSupply: {}, artSupply: {},
+  };
+  const cval = (v) => ({ span: {}, current_value: v, target_value: v, speed: 100 });
+  const gu = {
+    gamedatas: gd,
+    player_id: 99001113,
+    counters: {
+      96725718: { research: cval(27), temple: cval(2), idols: cval(12), guardians: cval(20), cards: cval(10), fear: cval(0), total: cval(71) },
+      99001113: { research: cval(33), temple: cval(11), idols: cval(21), guardians: cval(20), cards: cval(16), fear: cval(-1), total: cval(100) },
+    },
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  gu.constructor = function () {};
+  gu.constructor.prototype = proto;
+  Object.setPrototypeOf(gu, proto);
+  window.gameui = gu;
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    return {
+      errors: window.__errors,
+      foot: p ? (p.querySelector('.ap-round') || {}).textContent : null,
+      tabs: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => b.dataset.id + ':' + b.textContent.trim().split('\n')[0] + ' 分=' + b.textContent.trim().split('\n')[1].trim()) : [],
+      panes: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => {
+        b.click();
+        return b.dataset.id + ' -> ' + p.querySelector('.ap-detail').textContent.replace(/\s+/g, ' ').trim();
+      }) : [],
+    };
+  };
+</script>
+</body>
+</html>

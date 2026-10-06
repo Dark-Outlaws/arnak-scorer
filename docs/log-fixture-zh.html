@@ -1,0 +1,77 @@
+<!doctype html>
+<!--
+  中文日志回归样本：日志原文取自真实中文对局（220 条），玩家身份用真实形态
+  （键才是 id，玩家对象里没有 id）。
+  关键点：购买是「将 X 放到其牌堆的底部」（放到，且名字与「将」之间没有空格）；
+        打出是「打出X」（无名无空格）。
+  用法：起静态服务，打开此页，看 __report() / __detail()。
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak zh fixture</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round3"></div>
+  <div id="player_board_96725718"><div class="counter-number-guardian">2</div></div>
+  <div id="player_board_99001113"><div class="counter-number-guardian">4</div></div>
+  <div id="logs"></div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  // 真实日志原文（截取关键几类）
+  const LINES = [
+    'P2将汽车放到其牌堆的底部',   // 购买 → 汽车 item#6 = 3
+    'P2打出提灯',                  // 打出 → 提灯 item#35 = 2
+    'P1将斧头放到其牌堆的底部',       // 购买 → 斧头 item#38 = 2
+    'P1 获得1张恐惧牌',               // 恐惧 +1
+    'P2移除恐惧牌',                // 恐惧 -1
+    '从供应堆中移除驮运驴子',                   // 系统行：必须被跳过（没玩家名前缀）
+    '将已打出区域的牌洗混，放在你牌堆的底部',   // 系统行：必须被跳过
+    '你抽取恐惧牌',                             // 第二人称：抽取不等于获得，必须跳过
+    'P2 结束其回合'                // 回合边界
+  ];
+  const logs = document.getElementById('logs');
+  LINES.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.id = 'log_' + i;
+    d.className = 'log';
+    d.textContent = ' ' + t;
+    logs.appendChild(d);
+  });
+
+  function P(name) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: 2, research_book: 1, temple_rank: 1, idol: 1, idol_slot: 1 };
+  }
+  const gd = {
+    bird_temple: false, board_position: {}, research_bonus: [], round: 3,
+    players: { 96725718: P('P1'), 99001113: P('P2') },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  window.gameui = {
+    gamedatas: gd,
+    player_id: 99001113,
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    return {
+      errors: window.__errors,
+      tabs: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => b.dataset.id + ':' + b.textContent.trim().split('\n')[0]) : [],
+      panes: p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => {
+        b.click();
+        return b.dataset.id + ' -> ' + p.querySelector('.ap-detail').textContent.replace(/\s+/g, ' ').trim();
+      }) : [],
+    };
+  };
+</script>
+</body>
+</html>

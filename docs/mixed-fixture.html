@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  中英混排日志回归样本。日志原文取自真实对局（BGA 的翻译是碎的）：
+    「puts 火把 to the 底部 of their deck」= 英文动词 + 中文「底部」
+    「exiles 恐惧牌」= 英文动词 + 中文卡名
+    「获得1张恐惧牌」= 全中文
+  要点：卡牌身份靠隐藏标记（data-type/data-num），动作靠跨语言词元。
+  期望（P2）：卡牌分 = 火把2 + 泥铲1 = 3；恐惧 = 2 + 1获得 − 1放逐 = 1 张
+       其中「discards 恐惧牌」「You draw 恐惧牌」都不能算（弃掉≠移除；抽取≠获得）。
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak mixed fixture</title></head>
+<body>
+<div id="game_play_area">
+  <div class="staff-parent round3"></div>
+  <div id="player_board_96344633"><div class="counter-number-guardian">0</div></div>
+  <div id="player_board_99001113"><div class="counter-number-guardian">0</div></div>
+  <div id="logs"></div>
+</div>
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  // [文本, 隐藏标记(type#num) 或 null]
+  const LINES = [
+    ['P2 puts 火把 to the 底部 of their deck', 'item#28'],
+    ['P2 plays 火把', 'item#28'],
+    ['P2 获得1张恐惧牌', null],
+    ['P2 exiles 恐惧牌', 'fear#null'],
+    ['P2 discards 恐惧牌 for travel symbols', 'fear#null'],
+    ['You draw 恐惧牌', 'fear#null'],
+    ['P2 支付 1 金币', null],
+    ['新的物品 火把被揭示', 'item#28'],
+    ['从供应堆中移除马', 'item#4'],
+    ['P2 puts 泥铲 to the 底部 of their deck', 'item#9'],
+    ['P2 结束了其回合', null]
+  ];
+  const logs = document.getElementById('logs');
+  LINES.forEach((row, i) => {
+    const d = document.createElement('div');
+    d.id = 'log_' + i;
+    d.className = 'log';
+    d.textContent = ' ' + row[0];
+    if (row[1]) {
+      const tt = document.createElement('div');
+      tt.className = 'notif-inner-tooltip';
+      const parts = row[1].split('#');
+      tt.setAttribute('data-type', parts[0]);
+      tt.setAttribute('data-num', parts[1]);
+      d.insertBefore(tt, d.firstChild);
+    }
+    logs.appendChild(d);
+  });
+
+  function P(name, glass, book, rank, idol, slot) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: glass, research_book: book, temple_rank: rank, idol: idol, idol_slot: slot };
+  }
+  const gd = {
+    bird_temple: false, board_position: {}, research_bonus: [], round: 3,
+    players: {
+      96344633: P('P1', 14, 13, 2, 0, 0),
+      99001113: P('P2', 14, 13, 1, 0, 3)
+    },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  window.gameui = {
+    gamedatas: gd, player_id: 99001113,
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    const b = p && p.querySelector('.ap-tab[data-id="99001113"]');
+    if (b) b.click();
+    return {
+      errors: window.__errors,
+      detail: p ? (p.querySelector('.ap-detail') || {}).textContent.replace(/\s+/g, ' ').trim() : null,
+    };
+  };
+</script>
+</body>
+</html>
