@@ -1,5 +1,7 @@
 # 阿纳克实时计分（Arnak Live Scorer）
 
+> 仓库 / 更新：https://github.com/Dark-Outlaws/arnak-scorer
+
 BGA《失落的阿纳克遗迹》计分插件 v0.9.15。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
 
 ## 版本历史

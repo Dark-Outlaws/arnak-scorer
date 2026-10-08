@@ -4,6 +4,10 @@
 // @version      0.9.15
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
+// @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
+// @supportURL   https://github.com/Dark-Outlaws/arnak-scorer/issues
+// @updateURL    https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js
+// @downloadURL  https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js
 // @match        https://boardgamearena.com/*
 // @match        https://*.boardgamearena.com/*
 // @grant        none
