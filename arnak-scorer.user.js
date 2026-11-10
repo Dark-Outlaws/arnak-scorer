@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.19
+// @version      0.9.20
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
 // @supportURL   https://github.com/Dark-Outlaws/arnak-scorer/issues
-// @updateURL    https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js
-// @downloadURL  https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js
+// @updateURL    https://cdn.jsdelivr.net/gh/Dark-Outlaws/arnak-scorer@main/arnak-scorer.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/Dark-Outlaws/arnak-scorer@main/arnak-scorer.user.js
 // @match        https://boardgamearena.com/*
 // @match        https://*.boardgamearena.com/*
 // @grant        none
@@ -823,7 +823,7 @@
       <div class="ap-body"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.19</span>
+        <span class="ap-ver">v0.9.20</span>
       </div>`;
     document.body.appendChild(el);
 

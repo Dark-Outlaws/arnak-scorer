@@ -2,10 +2,11 @@
 
 > 仓库 / 更新：https://github.com/Dark-Outlaws/arnak-scorer
 
-BGA《失落的阿纳克遗迹》计分插件 v0.9.19。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
+BGA《失落的阿纳克遗迹》计分插件 v0.9.20。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
 
 ## 版本历史
 
+- **v0.9.20**：更新源从 `raw.githubusercontent.com` 换到 jsDelivr（国内直连 raw 拉不到，Tampermonkey 一直停在旧版）
 - **v0.9.19**：ELO 只在详情头出现（名字后面跟一句 `ELO 745`），胶囊里不放，只留悬停 title
 - **v0.9.18**：ELO 换位置：从胶囊第三行改成贴名字的小字（胶囊回到两行），详情头 ELO 跟着名字对齐而非独挂右边
 - **v0.9.17**：浮窗加 ELO：读游戏界面自己渲染的 `#player_elo_<id>`（零请求、每局只读一次），标签分数下方一行小字、详情头右侧 `ELO 745`
@@ -21,8 +22,12 @@ BGA《失落的阿纳克遗迹》计分插件 v0.9.19。常驻浮窗显示所有
 ## 安装
 
 1. 浏览器装 Tampermonkey（Chrome/Edge）
-2. 新建脚本，粘贴 `arnak-scorer.user.js` 全文
+2. 打开下面任一链接，点安装（Tampermonkey 会弹安装页；已装过会认版本号覆盖）
+   - jsDelivr（推荐，国内可直连）：`https://cdn.jsdelivr.net/gh/Dark-Outlaws/arnak-scorer@main/arnak-scorer.user.js`
+   - 仓库源文件：`https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js`
 3. 打开 BGA 阿纳克对局/观战/回放，浮窗自动出现（其他游戏静默）
+
+> 国内直连 raw.githubusercontent.com 常常超时，这也是旧版 `@updateURL` 指向 raw 时自动更新一直不动的原因；现在更新源改走 jsDelivr（分支有缓存，发布后自动更新最多可能晚几个小时，想立刻拿到就点上面前两个链接重装一次）
 
 ## 功能
 
