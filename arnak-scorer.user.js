@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.20
+// @version      0.9.21
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -823,7 +823,7 @@
       <div class="ap-body"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.20</span>
+        <span class="ap-ver">v0.9.21</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -941,7 +941,7 @@
       const entry = scoreMap.get(btn.dataset.id);
       const totalEl = btn.querySelector('.ap-tab-total');
       if (entry && totalEl) totalEl.textContent = entry.s.total;
-      // ELO 不在标签上露面，意译悬停时给
+      // ELO 不在标签上露面，只在悬停 title 里给
       if (entry) btn.title = entry.p.name + (eloOf(btn.dataset.id) ? ' · ELO ' + eloOf(btn.dataset.id) : '');
       btn.classList.toggle('active', btn.dataset.id === currentViewId);
       if (totalEl) totalEl.classList.toggle('top', scored.length && scored[0].p.id === btn.dataset.id);
