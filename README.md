@@ -2,10 +2,11 @@
 
 > 仓库 / 更新：https://github.com/Dark-Outlaws/arnak-scorer
 
-BGA《失落的阿纳克遗迹》计分插件 v0.9.16。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
+BGA《失落的阿纳克遗迹》计分插件 v0.9.17。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
 
 ## 版本历史
 
+- **v0.9.17**：浮窗加 ELO：读游戏界面自己渲染的 `#player_elo_<id>`（零请求、每局只读一次），标签分数下方一行小字、详情头右侧 `ELO 745`
 - **v0.9.16**：补 GitHub 仓库地址，脚本头加 homepage / support / update / download，README 加仓库链接；自本版起支持 Tampermonkey 自动检查更新
 - **v0.9.15**：解析改为「隐藏卡牌标记定身份 + 跨语言词元定动作」，修中英混排日志（如 `puts 火把 to the 底部 of their deck`）
 - **v0.9.14**：总分回到插件自算，不读 `gameui.counters`
@@ -30,6 +31,7 @@ BGA《失落的阿纳克遗迹》计分插件 v0.9.16。常驻浮窗显示所有
 - **日志补全**（中/英界面）：对局/观战/回放统一走日志账本，补全"买过没打出"的牌库盲区；卡牌身份读日志里的隐藏标记（语言无关），动作按跨语言词元判定（日志可能中英混排）
 - **结算校准**：scoreBreakdown 存在时恐惧/卡牌分用官方值覆盖
 - **UI**：苹果质感玻璃浮窗、深浅主题（首开跟随系统）、胶囊玩家标签（**我排最左，其余按座位序**，不随分数换位）、迷你图标（可拖动）、完整牌库展开
+- **ELO**：每位玩家在这个游戏里的 ELO，读界面渲染的 `#player_elo_<id>`，零请求；取不到就留空，不回退去抓个人资料页
 
 ## 数据读取架构
 
@@ -39,6 +41,7 @@ BGA《失落的阿纳克遗迹》计分插件 v0.9.16。常驻浮窗显示所有
 日志补全  购买（底部/顶部）、打出、恐惧获得/移除、初始牌移除；时间顺序、撤销重建
 语言分包  LOG_PACKS[zh|en]：同一套动作槽位两套措辞；卡名反查内置中/英两张表（同序）
 hook      游戏原生 notif（exileCard/gainFear/showAllCards），日志模式让位防双计
+ELO       DOM `#player_elo_<id>`（游戏界面自己渲染，零请求，每局只读一次）
 ```
 
 ## 关键数据（官方源码 + 实战验证）
@@ -56,6 +59,7 @@ hook      游戏原生 notif（exileCard/gainFear/showAllCards），日志模式
 - **BGA 的 `players` 里没有 `id` 字段**：实测对局、观战两神视图都一样（`current_player_id` 也没了），真实 id 只在 `players` 的**键**上（如 `"96725718"`）。玩家身份一律优先 `p.id`、取不到退回键，并统一成字符串；否则所有人落到同一个 `undefined` 上（牌库并成一个、`#player_board_undefined` 选择器全落空、守卫分归零）
 - **BGA 隐私**：对手手牌/牌库界面不可见，靠日志补全解决"买过没打出"部分
 - 扩展（Expedition Leaders）不支持
+- **ELO 是此刻的值**：读的是界面渲染的那个数，回放里也不是那一局当时的水平；界面未渲染或未定级时留空（资料页 fetch 实测超时、iframe 403，不走那条路）
 
 ## 文件
 
@@ -71,6 +75,7 @@ docs/log-fixture-zh.html  中文日志回归样本（真实中文对局日志，
 docs/mixed-fixture.html   中英混排回归样本（`puts 火把 to the 底部 of their deck`）
 docs/undo-fixture.html    撤销语义回归样本（打出的牌被撤销后必须留下）
 docs/spectator-fixture.html  观战视图回归样本（真实观战数据：players 无 id，键才是 id）
+docs/elo-fixture.html      ELO 回归样本（`#player_elo_<id>` → 标签小字 + 详情头）
 docs/harvest-snippet.js   对账采样器（F12 粘一段，自动把数据复制到剪贴板）
 ```
 

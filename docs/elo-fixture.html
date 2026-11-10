@@ -1,0 +1,72 @@
+<!doctype html>
+<!--
+  ELO 回归样本：BGA 界面自己会渲染 <span id="player_elo_<玩家id>">745</span>。
+  守的是三件事：
+    1. 标签上分数下方那行小字 = 该玩家的 ELO
+    2. 详情头右侧 = "ELO 745"
+    3. 读不到（没有 #player_elo_）时留空，不抛错、不影响分数
+  用法：起静态服务，打开此页，看 __report()。
+-->
+<html lang="zh">
+<head><meta charset="utf-8"><title>arnak elo fixture</title></head>
+<body>
+<!-- 模拟 BGA 上层页面：玩家名旁边的 ELO，游戏代码拿不到，只能读 DOM -->
+<div id="player_top">
+  <div class="player-name">
+    <span class="playername">P1</span>
+    <span id="player_elo_96725718">745</span>
+  </div>
+  <div class="player-name">
+    <span class="playername">P2</span>
+    <span id="player_elo_99001113">1234</span>
+  </div>
+</div>
+
+<div id="game_play_area">
+  <div class="staff-parent round2"></div>
+  <div id="player_board_96725718"><div class="counter-number-guardian">1</div></div>
+  <div id="player_board_99001113"><div class="counter-number-guardian">2</div></div>
+  <div id="logs"></div>
+</div>
+
+<script>
+  window.__errors = [];
+  window.addEventListener('error', (e) => window.__errors.push(String(e.message)));
+
+  function P(name) {
+    return { name: name, color: 'ff0000', hand: [], play: [], score: 0,
+      research_glass: 2, research_book: 1, temple_rank: 1, idol: 1, idol_slot: 1 };
+  }
+  const gd = {
+    bird_temple: false, board_position: {}, research_bonus: [], round: 2,
+    players: { 96725718: P('P1'), 99001113: P('P2') },
+    itemSupply: {}, artSupply: {},
+  };
+  const proto = { notif_exileCard() {}, notif_gainFear() {}, notif_showAllCards() {} };
+  window.gameui = {
+    gamedatas: gd,
+    player_id: 99001113,
+    game: { tooltips: { cardName(t, n) { return 'X' + n; } } },
+  };
+  window.gameui.constructor = function () {};
+  window.gameui.constructor.prototype = proto;
+  Object.setPrototypeOf(window.gameui, proto);
+</script>
+<script>document.write('<script src="../arnak-scorer.user.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  window.__report = function () {
+    const p = document.getElementById('arnak-panel');
+    const tabs = p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => ({
+      id: b.dataset.id,
+      total: (b.querySelector('.ap-tab-total') || {}).textContent,
+      elo: (b.querySelector('.ap-tab-elo') || {}).textContent,
+    })) : [];
+    const head = p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => {
+      b.click();
+      return b.dataset.id + ' -> ' + (p.querySelector('.ap-dhead-elo') || {}).textContent;
+    }) : [];
+    return { errors: window.__errors, tabs: tabs, detailElo: head };
+  };
+</script>
+</body>
+</html>

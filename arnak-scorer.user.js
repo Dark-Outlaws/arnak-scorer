@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.16
+// @version      0.9.17
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -620,6 +620,48 @@
   }
 
   // ════════════════════════════════════════════════════════════
+  // 三之二、ELO 情报层（可选增强；取不到就静默降级，绝不影响计分）
+  // ════════════════════════════════════════════════════════════
+  // BGA 界面自己会渲染每位玩家在这个游戏里的 ELO：<span id="player_elo_<玩家id>">745</span>。
+  // 零请求、零解析：不碰个人资料页（资料页 fetch 超时、iframe 403，见《姬路城》那次排查）。
+  // 一局只读一次：首次读到数字就存住，之后不再查 DOM，也不随对局进程变化。
+  // 元素常晚于首帧渲染，读不到返回 null（标签上先留空、行高不跳），下次重绘再试。
+  const eloSeen = {};   // pid -> '745'
+
+  function eloDocs() {
+    const docs = [document];
+    try {
+      const t = window.top;
+      if (t && t !== window && t.document) docs.push(t.document);  // 对局页的玩家名在上层页面，也一并找
+    } catch (e) { /* 跨域就只查本框架 */ }
+    return docs;
+  }
+
+  function eloOf(pid) {
+    if (eloSeen[pid] != null) return eloSeen[pid];
+    try {
+      for (const d of eloDocs()) {
+        const el = d.getElementById('player_elo_' + pid);
+        if (!el) continue;
+        const t = String(el.textContent || '').trim();
+        if (!t) continue;
+        eloSeen[pid] = t;
+        return t;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  // 标签第三行：没读到就是空串，不占位也不跳行高
+  function eloText(pid) { return eloOf(pid) || ''; }
+
+  // 详情头右侧：ELO 745
+  function eloDetail(pid) {
+    const e = eloOf(pid);
+    return e ? 'ELO ' + e : '';
+  }
+
+  // ════════════════════════════════════════════════════════════
   // 四、装配层：iframe 探测 / 根节点 / 监听
   // ════════════════════════════════════════════════════════════
   function isTopWindow() { return window.self === window.top; }
@@ -745,6 +787,9 @@
       #arnak-panel .ap-tab.active .ap-tab-total { color: #fff; }
       #arnak-panel .ap-tab-total.top { color: var(--ap-top); }
       #arnak-panel .ap-tab.active .ap-tab-total.top { color: #fff; }
+      #arnak-panel .ap-tab-elo { display: block; font-size: 9.5px; font-weight: 500; color: var(--ap-faint); font-variant-numeric: tabular-nums; letter-spacing: .2px; }
+      #arnak-panel .ap-tab.active .ap-tab-elo { color: rgba(255,255,255,0.82); }
+      #arnak-panel .ap-dhead-elo { flex: none; font-size: 10.5px; color: var(--ap-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
       #arnak-panel .ap-detail { padding: 8px 12px 10px; }
       #arnak-panel .ap-dhead { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
       #arnak-panel .ap-dname { flex: 1; font-weight: 600; font-size: 13.5px; color: var(--ap-text); }
@@ -783,7 +828,7 @@
       <div class="ap-body"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.15</span>
+        <span class="ap-ver">v0.9.17</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -901,6 +946,8 @@
       const entry = scoreMap.get(btn.dataset.id);
       const totalEl = btn.querySelector('.ap-tab-total');
       if (entry && totalEl) totalEl.textContent = entry.s.total;
+      const eloEl = btn.querySelector('.ap-tab-elo');
+      if (eloEl) eloEl.textContent = eloText(btn.dataset.id);
       btn.classList.toggle('active', btn.dataset.id === currentViewId);
       if (totalEl) totalEl.classList.toggle('top', scored.length && scored[0].p.id === btn.dataset.id);
     });
@@ -950,6 +997,7 @@
       <div class="ap-dhead">
         <span class="ap-dot" style="background:#${p.color}"></span>
         <span class="ap-dname">${p.name}${p.isMe ? '（我）' : ''}</span>
+        <span class="ap-dhead-elo">${eloDetail(p.id)}</span>
       </div>
       <div class="ap-grid">${gridHtml}</div>
       ${detailHtml}`;
@@ -980,6 +1028,7 @@
         <button class="ap-tab${pp.id === currentViewId ? ' active' : ''}" data-id="${pp.id}" title="${pp.name}">
           ${pp.name}
           <span class="ap-tab-total${scored[0].p.id === pp.id ? ' top' : ''}">${total}</span>
+          <span class="ap-tab-elo">${eloText(pp.id)}</span>
         </button>`;
       }).join('');
       body.innerHTML = `<div class="ap-tabs">${tabs}</div><div class="ap-detail"></div>`;
@@ -1076,6 +1125,18 @@
     if (state) { render(state); console.log('[arnak-scorer] 浮窗已渲染'); return true; }
     console.log('[arnak-scorer] 无数据，未渲染');
     return false;
+  };
+
+  // ELO 诊断：谁读到了、值是多少
+  window.__arnakElo = function () {
+    const pids = Object.keys(getGamedatas() && getGamedatas().players || {});
+    const out = pids.map((k) => {
+      const p = getGamedatas().players[k];
+      const pid = String(p.id != null ? p.id : k);
+      return { pid, name: p.name, elo: eloOf(pid), el: !!document.getElementById('player_elo_' + pid) };
+    });
+    console.table(out);
+    return out;
   };
 
   // 情报层（开发期保留）

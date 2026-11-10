@@ -4,7 +4,7 @@
 
 ## 一句话状态
 
-`arnak-scorer.user.js` **v0.9.15**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。
+`arnak-scorer.user.js` **v0.9.17**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
 
 ## 续接：回来先做三件事
 
@@ -15,7 +15,7 @@
 给人（或给我）一句话就够：
 
 ```
-继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.15）。
+继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.17）。
 先读 README 的版本历史 + EXPERIENCE 的三/七节，再跑 docs 下五份 fixture，然后动手。
 ```
 
@@ -47,8 +47,10 @@
 | `docs/mixed-fixture.html` | **中英混排**：`puts 火把 to the 底部 of their deck` |
 | `docs/undo-fixture.html` | 撤销语义：打出被撤销后牌必须留下；买牌被撤销必须消失 |
 | `docs/spectator-fixture.html` | 观战形态：`players` 里没有 `id`，真 id 在键上 |
+| `docs/elo-fixture.html` | ELO：`#player_elo_<id>` → 标签小字 + 详情头 `ELO 1234`；读不到不留事 |
 
-跑法：在 `G:\arnak-scorer` 起个静态服务（`python -m http.server 8731`），依次打开这五页，看各自 `__report()`。
+跑法：在 `G:\arnak-scorer` 起个静态服务（`python -m http.server 8731`），依次打开这六页，看各自 `__report()`。
+无头跑法（可选，工具不入库）：`G:\slice-work\fixture-run` 里 `node run.mjs`，一次性把六页跑完并打印 `__report()`（jsdom 已装在那里）。
 
 ## 加一门新语言
 
@@ -64,6 +66,7 @@
 - **无名的"免费获得此神器"**：不带卡名。通常紧跟着的"打出/揭示"那行会点名，所以尚未漏过；真不点名就是盲区。
 - 页脚不显示「终局」（回放里 `scoreBreakdown` 为空），轮次可能显示 `0/5`。纯显示，与分数无关。
 - 玩家名互为前缀时（`abc` 与 `abc2`），日志按名字认人可能归错。9.5 起就存在。
+- **ELO**：读界面的 `#player_elo_<id>`，是玩家此刻的值（回放里也不是当时值）；界面未渲染或未定级就留空。资料页 fetch 超时、iframe 403，不走那条路（见《姬路城》EXPERIENCE 第五节）
 
 ## 文件地图
 
