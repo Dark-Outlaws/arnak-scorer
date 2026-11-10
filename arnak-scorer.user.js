@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.17
+// @version      0.9.18
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -787,12 +787,14 @@
       #arnak-panel .ap-tab.active .ap-tab-total { color: #fff; }
       #arnak-panel .ap-tab-total.top { color: var(--ap-top); }
       #arnak-panel .ap-tab.active .ap-tab-total.top { color: #fff; }
-      #arnak-panel .ap-tab-elo { display: block; font-size: 9.5px; font-weight: 500; color: var(--ap-faint); font-variant-numeric: tabular-nums; letter-spacing: .2px; }
-      #arnak-panel .ap-tab.active .ap-tab-elo { color: rgba(255,255,255,0.82); }
+      #arnak-panel .ap-tab-nm { display: flex; align-items: baseline; justify-content: center; gap: 3px; min-width: 0; }
+      #arnak-panel .ap-tab-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #arnak-panel .ap-tab-elo { flex: none; font-size: 9px; font-weight: 500; opacity: .6; font-variant-numeric: tabular-nums; }
+      #arnak-panel .ap-tab.active .ap-tab-elo { opacity: .85; }
       #arnak-panel .ap-dhead-elo { flex: none; font-size: 10.5px; color: var(--ap-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
       #arnak-panel .ap-detail { padding: 8px 12px 10px; }
       #arnak-panel .ap-dhead { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
-      #arnak-panel .ap-dname { flex: 1; font-weight: 600; font-size: 13.5px; color: var(--ap-text); }
+      #arnak-panel .ap-dname { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13.5px; color: var(--ap-text); }
       #arnak-panel .ap-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
       #arnak-panel .ap-grid { display: flex; gap: 18px; }
       #arnak-panel .ap-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -828,7 +830,7 @@
       <div class="ap-body"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.17</span>
+        <span class="ap-ver">v0.9.18</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -1024,11 +1026,11 @@
       const tabs = ordered.map((pp) => {
         const entry = scoreMap.get(pp.id);
         const total = entry ? entry.s.total : 0;
+        const elo = eloText(pp.id);
         return `
-        <button class="ap-tab${pp.id === currentViewId ? ' active' : ''}" data-id="${pp.id}" title="${pp.name}">
-          ${pp.name}
+        <button class="ap-tab${pp.id === currentViewId ? ' active' : ''}" data-id="${pp.id}" title="${pp.name}${elo ? ' · ELO ' + elo : ''}">
+          <span class="ap-tab-nm"><span class="ap-tab-name">${pp.name}</span><span class="ap-tab-elo">${elo}</span></span>
           <span class="ap-tab-total${scored[0].p.id === pp.id ? ' top' : ''}">${total}</span>
-          <span class="ap-tab-elo">${eloText(pp.id)}</span>
         </button>`;
       }).join('');
       body.innerHTML = `<div class="ap-tabs">${tabs}</div><div class="ap-detail"></div>`;
