@@ -4,7 +4,7 @@
 
 ## 一句话状态
 
-`arnak-scorer.user.js` **v0.9.18**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
+`arnak-scorer.user.js` **v0.9.19**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
 
 ## 续接：回来先做三件事
 
@@ -15,7 +15,7 @@
 给人（或给我）一句话就够：
 
 ```
-继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.18）。
+继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.19）。
 先读 README 的版本历史 + EXPERIENCE 的三/七节，再跑 docs 下五份 fixture，然后动手。
 ```
 
@@ -47,7 +47,7 @@
 | `docs/mixed-fixture.html` | **中英混排**：`puts 火把 to the 底部 of their deck` |
 | `docs/undo-fixture.html` | 撤销语义：打出被撤销后牌必须留下；买牌被撤销必须消失 |
 | `docs/spectator-fixture.html` | 观战形态：`players` 里没有 `id`，真 id 在键上 |
-| `docs/elo-fixture.html` | ELO：`#player_elo_<id>` → 标签小字 + 详情头 `ELO 1234`；读不到不留事 |
+| `docs/elo-fixture.html` | ELO：详情头 `ELO 1234`；胶囊里不放（`tabEloLeft` 必须为 0），悬停 title 有值 |
 
 跑法：在 `G:\arnak-scorer` 起个静态服务（`python -m http.server 8731`），依次打开这六页，看各自 `__report()`。
 无头跑法（可选，工具不入库）：`G:\slice-work\fixture-run` 里 `node run.mjs`，一次性把六页跑完并打印 `__report()`（jsdom 已装在那里）。

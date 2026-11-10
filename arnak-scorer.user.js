@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.18
+// @version      0.9.19
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -625,7 +625,7 @@
   // BGA 界面自己会渲染每位玩家在这个游戏里的 ELO：<span id="player_elo_<玩家id>">745</span>。
   // 零请求、零解析：不碰个人资料页（资料页 fetch 超时、iframe 403，见《姬路城》那次排查）。
   // 一局只读一次：首次读到数字就存住，之后不再查 DOM，也不随对局进程变化。
-  // 元素常晚于首帧渲染，读不到返回 null（标签上先留空、行高不跳），下次重绘再试。
+  // 元素常晚于首帧渲染，读不到返回 null（详情头就不由这段），下次重绘再试。
   const eloSeen = {};   // pid -> '745'
 
   function eloDocs() {
@@ -652,10 +652,7 @@
     return null;
   }
 
-  // 标签第三行：没读到就是空串，不占位也不跳行高
-  function eloText(pid) { return eloOf(pid) || ''; }
-
-  // 详情头右侧：ELO 745
+  // 详情头：名字后面跟一句 ELO 745（标签上不露面，只写到 title 里悬停可见）
   function eloDetail(pid) {
     const e = eloOf(pid);
     return e ? 'ELO ' + e : '';
@@ -787,10 +784,6 @@
       #arnak-panel .ap-tab.active .ap-tab-total { color: #fff; }
       #arnak-panel .ap-tab-total.top { color: var(--ap-top); }
       #arnak-panel .ap-tab.active .ap-tab-total.top { color: #fff; }
-      #arnak-panel .ap-tab-nm { display: flex; align-items: baseline; justify-content: center; gap: 3px; min-width: 0; }
-      #arnak-panel .ap-tab-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      #arnak-panel .ap-tab-elo { flex: none; font-size: 9px; font-weight: 500; opacity: .6; font-variant-numeric: tabular-nums; }
-      #arnak-panel .ap-tab.active .ap-tab-elo { opacity: .85; }
       #arnak-panel .ap-dhead-elo { flex: none; font-size: 10.5px; color: var(--ap-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
       #arnak-panel .ap-detail { padding: 8px 12px 10px; }
       #arnak-panel .ap-dhead { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
@@ -830,7 +823,7 @@
       <div class="ap-body"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.18</span>
+        <span class="ap-ver">v0.9.19</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -948,8 +941,8 @@
       const entry = scoreMap.get(btn.dataset.id);
       const totalEl = btn.querySelector('.ap-tab-total');
       if (entry && totalEl) totalEl.textContent = entry.s.total;
-      const eloEl = btn.querySelector('.ap-tab-elo');
-      if (eloEl) eloEl.textContent = eloText(btn.dataset.id);
+      // ELO 不在标签上露面，意译悬停时给
+      if (entry) btn.title = entry.p.name + (eloOf(btn.dataset.id) ? ' · ELO ' + eloOf(btn.dataset.id) : '');
       btn.classList.toggle('active', btn.dataset.id === currentViewId);
       if (totalEl) totalEl.classList.toggle('top', scored.length && scored[0].p.id === btn.dataset.id);
     });
@@ -1026,10 +1019,9 @@
       const tabs = ordered.map((pp) => {
         const entry = scoreMap.get(pp.id);
         const total = entry ? entry.s.total : 0;
-        const elo = eloText(pp.id);
         return `
-        <button class="ap-tab${pp.id === currentViewId ? ' active' : ''}" data-id="${pp.id}" title="${pp.name}${elo ? ' · ELO ' + elo : ''}">
-          <span class="ap-tab-nm"><span class="ap-tab-name">${pp.name}</span><span class="ap-tab-elo">${elo}</span></span>
+        <button class="ap-tab${pp.id === currentViewId ? ' active' : ''}" data-id="${pp.id}" title="${pp.name}">
+          ${pp.name}
           <span class="ap-tab-total${scored[0].p.id === pp.id ? ' top' : ''}">${total}</span>
         </button>`;
       }).join('');

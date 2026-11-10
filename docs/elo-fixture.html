@@ -2,8 +2,8 @@
 <!--
   ELO 回归样本：BGA 界面自己会渲染 <span id="player_elo_<玩家id>">745</span>。
   守的是三件事：
-    1. 标签上分数下方那行小字 = 该玩家的 ELO
-    2. 详情头右侧 = "ELO 745"
+    1. 详情头名字后面 = "ELO 745"（逐个点标签验）
+    2. 胶囊里不放 ELO（标签只有名字 + 总分两行）
     3. 读不到（没有 #player_elo_）时留空，不抛错、不影响分数
   用法：起静态服务，打开此页，看 __report()。
 -->
@@ -59,13 +59,15 @@
     const tabs = p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => ({
       id: b.dataset.id,
       total: (b.querySelector('.ap-tab-total') || {}).textContent,
-      elo: (b.querySelector('.ap-tab-elo') || {}).textContent,
+      title: b.getAttribute('title'),
     })) : [];
     const head = p ? [].map.call(p.querySelectorAll('.ap-tab'), (b) => {
       b.click();
       return b.dataset.id + ' -> ' + (p.querySelector('.ap-dhead-elo') || {}).textContent;
     }) : [];
-    return { errors: window.__errors, tabs: tabs, detailElo: head };
+    // 标签里不应残留任何 ELO 元素
+    const tabEloLeft = p ? p.querySelectorAll('.ap-tab-elo').length : -1;
+    return { errors: window.__errors, tabs: tabs, detailElo: head, tabEloLeft: tabEloLeft };
   };
 </script>
 </body>
