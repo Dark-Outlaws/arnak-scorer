@@ -4,7 +4,9 @@
 
 ## 一句话状态
 
-`arnak-scorer.user.js` **v0.9.20**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
+`arnak-scorer.user.js` **v0.9.22**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
+
+更新通道：`@updateURL` 指向 `ghfast.top` 转发 raw（国内直连 raw 不通，jsDelivr 对 `@main` 有缓存，两条都导致发版后收不到）。
 
 ## 续接：回来先做三件事
 
@@ -15,8 +17,8 @@
 给人（或给我）一句话就够：
 
 ```
-继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.20）。
-先读 README 的版本历史 + EXPERIENCE 的三/七节，再跑 docs 下五份 fixture，然后动手。
+继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.22）。
+先读 README 的版本历史 + EXPERIENCE 的三/七节，再跑 docs 下六份 fixture，然后动手。
 ```
 
 ## 四条不变式（改代码时不要破）

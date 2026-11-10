@@ -2,10 +2,11 @@
 
 > 仓库 / 更新：https://github.com/Dark-Outlaws/arnak-scorer
 
-BGA《失落的阿纳克遗迹》计分插件 v0.9.21。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
+BGA《失落的阿纳克遗迹》计分插件 v0.9.22。常驻浮窗显示所有玩家实时终局分，基础版（鸟庙/蛇庙），不含扩展。**支持对局、观战、回放三种模式**。
 
 ## 版本历史
 
+- **v0.9.22**：更新源换成 `ghfast.top` 实时代理（jsDelivr 对 `@main` 有缓存，发版后几小时到半天都看不到新版）；从此推送后 TM 能立即拉到
 - **v0.9.21**：只改一行注释（ELO 悬停那行的错字），行为与 0.9.20 一致；版本号前进是为了让「版本 → 内容」保持一对一
 - **v0.9.20**：更新源从 `raw.githubusercontent.com` 换到 jsDelivr（国内直连 raw 拉不到，Tampermonkey 一直停在旧版）
 - **v0.9.19**：ELO 只在详情头出现（名字后面跟一句 `ELO 745`），胶囊里不放，只留悬停 title
@@ -24,11 +25,11 @@ BGA《失落的阿纳克遗迹》计分插件 v0.9.21。常驻浮窗显示所有
 
 1. 浏览器装 Tampermonkey（Chrome/Edge）
 2. 打开下面任一链接，点安装（Tampermonkey 会弹安装页；已装过会认版本号覆盖）
-   - jsDelivr（推荐，国内可直连）：`https://cdn.jsdelivr.net/gh/Dark-Outlaws/arnak-scorer@main/arnak-scorer.user.js`
-   - 仓库源文件：`https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js`
+   - 代理原文（与自动更新同源）：`https://ghfast.top/https://raw.githubusercontent.com/Dark-Outlaws/arnak-scorer/main/arnak-scorer.user.js`
+   - jsDelivr（备用，固定提交号可绕缓存）：`https://cdn.jsdelivr.net/gh/Dark-Outlaws/arnak-scorer@<提交号>/arnak-scorer.user.js`
 3. 打开 BGA 阿纳克对局/观战/回放，浮窗自动出现（其他游戏静默）
 
-> 国内直连 raw.githubusercontent.com 常常超时，这也是旧版 `@updateURL` 指向 raw 时自动更新一直不动的原因；现在更新源改走 jsDelivr（分支有缓存，发布后自动更新最多可能晚几个小时，想立刻拿到就点上面前两个链接重装一次）
+> 更新通道：国内直连 `raw.githubusercontent.com` 常超时，jsDelivr 对分支有缓存（发版后半天看不到新版），所以 `@updateURL` 走 `ghfast.top` 转发 raw，实时代理。哪天它挂了，把脚本头两条 `@updateURL` / `@downloadURL` 的 `https://ghfast.top/` 前缀去掉、换成其他同类代理即可
 
 ## 功能
 
