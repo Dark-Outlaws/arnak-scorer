@@ -4,7 +4,7 @@
 
 ## 一句话状态
 
-`arnak-scorer.user.js` **v0.9.22**。三局真实对局（鸟庙/蛇庙、纯中文/中英混排）逐项与官方一致；五个回放实测无误。浮窗带每位玩家在本游戏的 ELO。
+`arnak-scorer.user.js` **v0.9.57**。计分链沿旧结论（三局真实对局 + 五个回放对过账）。本轮新增三件事：**A2 版面**、**手牌/牌库/弃牌三区**、**牌堆牌序推断**。
 
 更新通道：`@updateURL` 指向 `ghfast.top` 转发 raw（国内直连 raw 不通，jsDelivr 对 `@main` 有缓存，两条都导致发版后收不到）。
 
@@ -17,8 +17,8 @@
 给人（或给我）一句话就够：
 
 ```
-继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.22）。
-先读 README 的版本历史 + EXPERIENCE 的三/七节，再跑 docs 下六份 fixture，然后动手。
+继续 G:\arnak-scorer 的阿纳克计分插件（v0.9.57）。
+先读 README 的版本历史 + EXPERIENCE 的三/七/十一节，再跑 docs 下六份 fixture，然后动手。
 ```
 
 ## 四条不变式（改代码时不要破）
@@ -29,6 +29,37 @@
 4. **终局分数自算**：`gameui.counters` / `scoreBreakdown` 只用来对账和反推规则，**不当总分输出**。拿官方值当总分，等于自家账本的错永远看不见。
 
 两条语义底线：`弃掉 / discards` **不算移除**（牌回牌堆，仍属于你）；`抽取 / draw` **不算获得**（只是摸到手上）。
+
+## 四之半、本轮新增的三层（v0.9.23–0.9.57）
+
+### 1. 手牌层
+
+活的源是 `gameui.hand`（`drawSelfCard` 往里 push、`cardPlayed`/`exileCard` 往里 splice，也是 `updateHand` 的渲染源）。`gamedatas.players[pid].hand` 只在开局准。
+
+手牌牌的真实形状：`{type:'basic', num:'fear'|'fundship'|'exploreship'|'explorecar'}`。注意同一张恐惧在 `play` 区是 `{type:'fear', num:null}`，两处表示不一样，统一拆一个 `kind` 出来用。
+
+按轮快照存在 `handByRound`，`__arnakHands()` 打印，`__arnakHand()` 看当前手牌。
+
+### 2. 牌库与弃牌
+
+- `弃牌` = `gamedatas.players[pid].play` 的 DOM 渲染（`.camp-<pid> .card-outer` 去掉 `.hand` 与 `.deck`），公开信息
+- `牌库` = 已见 − 手牌 − 弃牌，只对自己算
+- 对手只给 `牌库`（已见全量），因为他没有手牌可扣
+
+### 3. 牌堆牌序
+
+详见 EXPERIENCE 第十一节。关键点：位置 = 总张数 − 距底偏移；回合末洗回是**底部**，不能当顶部未知。
+
+### 调试钩子
+
+| 钩子 | 作用 |
+|---|---|
+| `__arnakShow()` | 强制渲染 + 计分诊断 |
+| `__arnakHand()` / `__arnakHands()` | 当前手牌 / 按轮手牌与弃牌序列 |
+| `__arnakDeck()` | 牌组模型：seeded / drift / 分块 |
+| `__arnakHooks()` | 五个通知包上没有、最近调用记录 |
+| `__arnakPlay()` | 弃牌区 DOM 与 gamedatas 两边对照 |
+| `__arnakElo()` | ELO 读取情况 |
 
 ## 出问题时怎么办
 
@@ -65,10 +96,13 @@
 
 ## 已知边界（都知情，未修）
 
-- **无名的"免费获得此神器"**：不带卡名。通常紧跟着的"打出/揭示"那行会点名，所以尚未漏过；真不点名就是盲区。
-- 页脚不显示「终局」（回放里 `scoreBreakdown` 为空），轮次可能显示 `0/5`。纯显示，与分数无关。
+- **牌堆牌序**：刷新后牌堆内容归为未知（不猜历史）；与官方 `.deck-amt` 对不上时标 `?`。
+- **对手的牌堆/手牌**：看不到，也不编。对手面板只有 `牌库` 一行。
+- **hook 未验证生效**：`notif_putToDeck` / `drawSelfCard` / `shufflePlay` 的包裹是否真触发没有定论（`__arnakHooks()` 可查），所以买牌改由日志驱动，hook 仅作无日志时兜底。
+- **无名的“免费获得此神器”**：不带卡名。通常紧跟着的“打出/揭示”那行会点名，所以尚未漏过；真不点名就是盲区。
+- 页脚不显示「终局」（回放里 `scoreBreakdown` 为空）。
 - 玩家名互为前缀时（`abc` 与 `abc2`），日志按名字认人可能归错。9.5 起就存在。
-- **ELO**：读界面的 `#player_elo_<id>`，是玩家此刻的值（回放里也不是当时值）；界面未渲染或未定级就留空。资料页 fetch 超时、iframe 403，不走那条路（见《姬路城》EXPERIENCE 第五节）
+- **ELO**：读界面的 `#player_elo_<id>`，是玩家此刻的值（回放里也不是当时值）；界面未渲染或未定级就留空。
 
 ## 文件地图
 

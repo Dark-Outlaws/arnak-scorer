@@ -2,6 +2,11 @@
 docs/arnak.js
 docs/tooltips.js
 
+# 第三方素材（BGA 的卡图 / 版图 / 样式），不随仓库分发
+docs/arnak.css
+docs/tiles/
+docs/*.png
+
 # 系统 / 编辑器杂物
 .DS_Store
 Thumbs.db
