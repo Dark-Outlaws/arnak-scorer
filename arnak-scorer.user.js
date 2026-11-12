@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.57
+// @version      0.9.58
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -1101,8 +1101,10 @@
 
   function getFrame() {
     if (!isTopWindow()) return { win: window, doc: document };
-    // 顶层有游戏 DOM 直接用顶层（回放页）；否则钻真实游戏 iframe（对局页）
-    if (findGameRoot()) return { win: window, doc: document };
+    // 顶层自己有 gameui 就是它在跑游戏（回放页）；否则钻真实游戏 iframe（对局页）。
+    // 以 gameui 为判断依据，不用 DOM 根节点：顶层壳页也可能有 #table-wrap，
+    // 但那里的 gameui 是空的，书签版（只跑顶层）就会一直卡在等 gamedatas。
+    if (window.gameui && window.gameui.gamedatas) return { win: window, doc: document };
     const f = findArnakIframe();
     return f ? { win: f.contentWindow, doc: f.contentDocument } : null;
   }
@@ -1266,7 +1268,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.57</span>
+        <span class="ap-ver">v0.9.58</span>
       </div>`;
     document.body.appendChild(el);
 
