@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.59
+// @version      0.9.60
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -187,6 +187,8 @@
   const finalFear = new Map();
   // 牌 id → {type, num, pid}，用于 exile 时反查删除已见记录
   const idToCard = new Map();
+  // 已被放逐的牌（pid → Set('item:25')），防止从陈旧快照里复活
+  const exileKeys = new Map();
 
   function seenSet(pid) {
     if (!seenCards.has(pid)) seenCards.set(pid, { cards: new Map(), fears: new Map() });
@@ -198,6 +200,12 @@
     const t = card.type;
     // 只认计分牌；起始牌（资金/探索）与其它类型一律不进牌库（避免 basic#NaN 这类脏条目）
     if (t !== 'item' && t !== 'art' && t !== 'fear') return;
+    // 已经放逐掉的牌不许回来：gamedatas 的 play 数组可能还是旧的，
+    // 不拦的话每帧都会把「放逐自身的牌」（水瓶 / 粗略地图 / 空投这类）重新加回牌库
+    if (t !== 'fear') {
+      const ex = exileKeys.get(pid);
+      if (ex && ex.has(t + ':' + card.num)) return;
+    }
     const s = seenSet(pid);
     if (t === 'fear') {
       s.fears.set(String(card.id != null ? card.id : 'f' + s.fears.size), true);
@@ -205,6 +213,14 @@
       s.cards.set(t + ':' + card.num, { type: t, num: +card.num });
       if (card.id != null) idToCard.set(String(card.id), { type: t, num: +card.num, pid });
     }
+  }
+
+  // 记一笔「这张已经放逐了」：从已见里抹掉，并阻止它从陈旧快照里复活
+  function markExiled(pid, key) {
+    if (!key) return;
+    seenSet(pid).cards.delete(key);
+    if (!exileKeys.has(pid)) exileKeys.set(pid, new Set());
+    exileKeys.get(pid).add(key);
   }
 
   // 恐惧卡数：终局（showAllCards）用服务端精确值；实时 = 初始 2 + 新增获得 − 移除
@@ -266,21 +282,27 @@
     if (!gu || gu.__arnakExileHooked) return;
     const proto = gu.constructor && gu.constructor.prototype;
 
-    // 移除：恐惧记移除；普通牌用 id 反查并删除已见记录
+    // 移除：把牌从「已见」里删掉。item/art 的删除是幂等的，日志模式也做：
+    // 日志里不一定有「移除了 X」这行（放逐自身的牌常常只发通知），只靠日志会漏删。
     wrapNotif(proto, 'notif_exileCard', (args) => {
       const pid = args.player_id == null ? null : String(args.player_id);
-      if (!pid || logModeActive) return;
+      if (!pid) return;
       const ct = String(args.cardType);
-      if (ct === 'fear') {
-        if (!fearExiled.has(pid)) fearExiled.set(pid, new Set());
-        const es = fearExiled.get(pid);
-        es.add(String(args.cardId != null ? args.cardId : 'x' + es.size));
-      } else if (ct === 'item' || ct === 'art') {
+      if (ct === 'item' || ct === 'art') {
         const ref = idToCard.get(String(args.cardId));
+        const key = ref ? ref.type + ':' + ref.num : (args.cardNum != null && args.cardNum !== '' ? ct + ':' + (+args.cardNum) : null);
         if (ref) {
           seenSet(ref.pid).cards.delete(ref.type + ':' + ref.num);
           idToCard.delete(String(args.cardId));
         }
+        if (key) markExiled(pid, key);
+        return;
+      }
+      if (logModeActive) return;   // 恐惧计数交给日志，避免双计
+      if (ct === 'fear') {
+        if (!fearExiled.has(pid)) fearExiled.set(pid, new Set());
+        const es = fearExiled.get(pid);
+        es.add(String(args.cardId != null ? args.cardId : 'x' + es.size));
       } else if (gu.gamedatas && gu.gamedatas.players && gu.gamedatas.players[pid]) {
         const play = gu.gamedatas.players[pid].play || [];
         const card = play.find((c) => String(c.id) === String(args.cardId));
@@ -508,7 +530,12 @@
     if (TOK.buyVerb.test(text) && TOK.deckWord.test(text)) {
       pushSnapshot(pid);
       ownershipAction.set(pid, true);
-      if (card) rememberCard(pid, { type: card.type, num: card.num });
+      if (card) {
+        // 又买了一张同名牌：之前放逐的那张不再代表现在，解除封锁
+        const ex = exileKeys.get(pid);
+        if (ex) ex.delete(card.type + ':' + card.num);
+        rememberCard(pid, { type: card.type, num: card.num });
+      }
       // 牌组还没播种时，先把买牌记下来（底部的名字是确定的，能补回来）
       if (mePid != null && pid === mePid) noteBuy(card, text);
       return;
@@ -537,7 +564,7 @@
         basicRemoved.set(pid, r);
         return;
       }
-      if (card) seenSet(pid).cards.delete(card.type + ':' + card.num);
+      if (card) markExiled(pid, card.type + ':' + card.num);
       return;
     }
     // 恐惧获得
@@ -574,6 +601,7 @@
       ownershipAction.clear();
       logProcessed = new Set();
       roundLogCount = 0;
+      exileKeys.clear();
     }
     logInitialScan = !logInited || rebuilding;
     logCount = logs.length;
@@ -986,9 +1014,13 @@
     const players = Object.keys(gd.players).map((key) => {
       const p = gd.players[key];
       const pid = playerKey(key);
+      // 出牌区以 DOM 为准：gamedatas 的 play 数组有时是旧的（restoreServerGameState 换过引用），
+      // 已经放逐的牌会从旧数组里被每帧重新加回牌库。DOM 是渲染结果，移除的牌不会留在里面。
+      const domPlay = fr ? readPlayFrom(fr, pid) : [];
+      const playSrc = domPlay.length ? domPlay : (p.play || []);
       // 观战日志模式：牌库由日志维护，fear 由日志计数，跳过 play/hand 的 fear 双计
       (p.hand || []).forEach((c) => { if (isLogMode && c.type === 'fear') return; rememberCard(pid, c); });
-      (p.play || []).forEach((c) => { if (isLogMode && c.type === 'fear') return; rememberCard(pid, c); });
+      playSrc.forEach((c) => { if (isLogMode && c.type === 'fear') return; rememberCard(pid, c); });
 
       // 牌明细：结算后刷新/中途加入时事件追踪缺失，用官方 scoreBreakdown 校准恐惧数和卡牌分
       // （注意：这层只影响卡牌与恐惧两项，总分仍由插件自算）
@@ -1018,7 +1050,7 @@
         },
         cardDetail: cd,
         // 每个玩家的出牌区（公开信息，DOM 里都能读）
-        played: fr ? readPlayFrom(fr, pid) : [],
+        played: domPlay,
         // 牌组只算自己：别人的牌堆只有张数，没有可靠牌序
         deck: (fr && fr.win.gameui && pid === String(fr.win.gameui.player_id)) ? deckSnapshot(deckAmtOf(doc, pid)) : null,
         basicRemoved: basicRemoved.get(pid) || { fund: 0, explore: 0 },
@@ -1286,7 +1318,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.59</span>
+        <span class="ap-ver">v0.9.60</span>
       </div>`;
     document.body.appendChild(el);
 
