@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.58
+// @version      0.9.59
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -1053,12 +1053,30 @@
   // 元素常晚于首帧渲染，读不到返回 null（详情头就不由这段），下次重绘再试。
   const eloSeen = {};   // pid -> '745'
 
+  // 手机上 BGA 的玩家条可能另一个框架里，所以不只查本窗口与顶层，
+  // 把能碰到的同源 iframe 都扫一遭（深度限 3，避免递归坑）。
   function eloDocs() {
-    const docs = [document];
-    try {
-      const t = window.top;
-      if (t && t !== window && t.document) docs.push(t.document);  // 对局页的玩家名在上层页面，也一并找
-    } catch (e) { /* 跨域就只查本框架 */ }
+    const docs = [];
+    const push = (d) => { try { if (d && d.getElementById && docs.indexOf(d) < 0) docs.push(d); } catch (e) { /* ignore */ } };
+    let tops = null;
+    try { tops = window.top; } catch (e) { tops = null; }
+    push(document);
+    try { if (tops && tops !== window) push(tops.document); } catch (e) { /* 跨域 */ }
+    const scan = (d, depth) => {
+      if (!d || depth > 3) return;
+      let frames = [];
+      try { frames = Array.from(d.querySelectorAll('iframe')); } catch (e) { return; }
+      for (const f of frames) {
+        try {
+          const fd = f.contentDocument;
+          if (!fd) continue;
+          push(fd);
+          scan(fd, depth + 1);
+        } catch (e) { /* 跨域跳过 */ }
+      }
+    };
+    scan(document, 0);
+    try { if (tops && tops.document) scan(tops.document, 0); } catch (e) { /* ignore */ }
     return docs;
   }
 
@@ -1268,7 +1286,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.58</span>
+        <span class="ap-ver">v0.9.59</span>
       </div>`;
     document.body.appendChild(el);
 
