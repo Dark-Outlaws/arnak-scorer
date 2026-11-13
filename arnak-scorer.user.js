@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.60
+// @version      0.9.61
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -667,19 +667,33 @@
   // 手牌只在「带 gameui 的那个窗口」里。顶层页面的 #game_play_area / #table-wrap 也会命中，
   // 所以不能靠根节点找窗口（对局页的顶层实例只是个壳，它的 gameui 是 undefined），
   // 直接枚举真带 gameui 的窗口，不猜设备、不看 src。
-  function gameUiSources() {
+  // 所有能碰到的同源窗口：自己 → 顶层 → 递归扫 iframe（深度限 3）。
+  // gameUiSources 与 eloDocs 都从这里取，不再各写一套「顶层 + iframe」的探测。
+  function sameOriginFrames() {
     const out = [];
-    const add = (win, doc) => {
-      if (!win || !doc) return;
+    const add = (win, doc, depth) => {
+      if (!win || !doc || depth > 3) return;
       if (out.some((s) => s.win === win)) return;
-      try { if (win.gameui) out.push({ win, doc }); } catch (e) { /* 跨域跳过 */ }
+      out.push({ win, doc });
+      let frames = [];
+      try { frames = Array.from(doc.querySelectorAll('iframe')); } catch (e) { return; }
+      for (const f of frames) {
+        try {
+          const fd = f.contentDocument;
+          if (fd) add(f.contentWindow, fd, depth + 1);
+        } catch (e) { /* 跨域跳过 */ }
+      }
     };
-    add(window, document);
-    try { if (window.top && window.top !== window) add(window.top, window.top.document); } catch (e) { /* 跨域跳过 */ }
-    Array.from(document.querySelectorAll('iframe')).forEach((f) => {
-      try { add(f.contentWindow, f.contentDocument); } catch (e) { /* 跨域跳过 */ }
-    });
+    add(window, document, 0);
+    try { if (window.top && window.top !== window) add(window.top, window.top.document, 0); } catch (e) { /* 跨域跳过 */ }
     return out;
+  }
+
+  // 真带 gameui 的窗口（对局页的顶层实例只是个壳，它的 gameui 是 undefined）
+  function gameUiSources() {
+    return sameOriginFrames().filter((s) => {
+      try { return !!s.win.gameui; } catch (e) { return false; }
+    });
   }
 
   function readHandFrom(src) {
@@ -1088,28 +1102,7 @@
   // 手机上 BGA 的玩家条可能另一个框架里，所以不只查本窗口与顶层，
   // 把能碰到的同源 iframe 都扫一遭（深度限 3，避免递归坑）。
   function eloDocs() {
-    const docs = [];
-    const push = (d) => { try { if (d && d.getElementById && docs.indexOf(d) < 0) docs.push(d); } catch (e) { /* ignore */ } };
-    let tops = null;
-    try { tops = window.top; } catch (e) { tops = null; }
-    push(document);
-    try { if (tops && tops !== window) push(tops.document); } catch (e) { /* 跨域 */ }
-    const scan = (d, depth) => {
-      if (!d || depth > 3) return;
-      let frames = [];
-      try { frames = Array.from(d.querySelectorAll('iframe')); } catch (e) { return; }
-      for (const f of frames) {
-        try {
-          const fd = f.contentDocument;
-          if (!fd) continue;
-          push(fd);
-          scan(fd, depth + 1);
-        } catch (e) { /* 跨域跳过 */ }
-      }
-    };
-    scan(document, 0);
-    try { if (tops && tops.document) scan(tops.document, 0); } catch (e) { /* ignore */ }
-    return docs;
+    return sameOriginFrames().map((s) => s.doc);
   }
 
   function eloOf(pid) {
@@ -1318,7 +1311,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.60</span>
+        <span class="ap-ver">v0.9.61</span>
       </div>`;
     document.body.appendChild(el);
 
