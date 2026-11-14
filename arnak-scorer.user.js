@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.62
+// @version      0.9.63
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -543,7 +543,10 @@
     // 打出：牌只是换了位置（手牌 → 已打出区），归属没变，不压栈
     if (TOK.play.test(text)) {
       ownershipAction.set(pid, false);
-      if (card) rememberCard(pid, { type: card.type, num: card.num });
+      if (card) {
+        rememberCard(pid, { type: card.type, num: card.num });
+        notePlay(pid, card, roundLogCount + 1);
+      }
       return;
     }
     // 移除/放逐（恐惧牌记移除；初始资金/探索单独计数）
@@ -582,6 +585,24 @@
     ownershipAction.set(pid, false);
   }
 
+  // 每个玩家每轮打出的牌：pid -> Map(roundNo -> [cardView])
+  // 对手那栏靠它显示「上一回合打了什么」，数据来自日志，回放/观战一样有
+  const playByRound = new Map();
+
+  function notePlay(pid, card, roundNo) {
+    if (!card || !card.type) return;
+    const t = card.type;
+    if (t !== 'item' && t !== 'art' && t !== 'basic' && t !== 'fear') return;
+    if (!playByRound.has(pid)) playByRound.set(pid, new Map());
+    const m = playByRound.get(pid);
+    if (!m.has(roundNo)) m.set(roundNo, []);
+    const arr = m.get(roundNo);
+    const view = handCardView({ type: t, num: card.num, id: t + ':' + card.num + ':' + arr.length });
+    // 同轮重复打出同一张牌只记一次（显示用，不参与计分）
+    const key = view.type + ':' + view.num;
+    if (!arr.some((c) => c.type + ':' + c.num === key)) arr.push(view);
+  }
+
   // 全量扫描日志，未处理过的才解析；日志数量减少（撤销）时全量重建
   function updateLogTracker(doc, players) {
     const logs = Array.from(doc.querySelectorAll('#logs .log[id^="log_"]'));
@@ -601,6 +622,7 @@
       ownershipAction.clear();
       logProcessed = new Set();
       roundLogCount = 0;
+      playByRound.clear();
       exileKeys.clear();
     }
     logInitialScan = !logInited || rebuilding;
@@ -1282,7 +1304,7 @@
       #arnak-panel .ap-zone:first-child { padding-top: 8px; }
       #arnak-panel .ap-zone.gap { padding-top: 11px; margin-top: 5px; border-top: 0.5px solid var(--ap-border); }
       #arnak-panel .ap-zone:last-child { padding-bottom: 10px; }
-      #arnak-panel .ap-zone-label { flex: none; width: 30px; font-size: 10px; letter-spacing: .4px; color: var(--ap-faint); padding-top: 2px; }
+      #arnak-panel .ap-zone-label { flex: none; width: 34px; font-size: 10px; letter-spacing: .4px; color: var(--ap-faint); padding-top: 2px; }
       #arnak-panel .ap-zone-cards { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; }
       #arnak-panel .ap-chip { display: inline-block; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; line-height: 1.6; white-space: nowrap; font-weight: 600; }
       #arnak-panel .ap-chip-fund { background: #F0D28A; color: #3A2E10; }
@@ -1316,7 +1338,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.62</span>
+        <span class="ap-ver">v0.9.63</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -1535,6 +1557,15 @@
           ...Array(Math.max(0, d.fearCount)).fill(chip('fear', '恐惧')),
         ];
       }
+      // 对手：上一回合打了什么（日志里推出来的，回放/观战一样有）
+      if (!mine) {
+        const rNow = (lastState && lastState.round) || 1;
+        const byRound = playByRound.get(p.id);
+        const prev = (byRound && byRound.get(rNow - 1)) || [];
+        const prevChips = prev.map(chipOf).join('');
+        zones.push(`<div class="ap-zone"><span class="ap-zone-label">上回合</span><span class="ap-zone-cards">${prevChips || DASH}</span></div>`);
+      }
+
       zones.push(`<div class="ap-zone"><span class="ap-zone-label">牌库</span><span class="ap-zone-cards">${lib.join('') || DASH}</span></div>`);
     }
 
