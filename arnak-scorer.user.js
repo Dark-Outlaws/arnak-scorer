@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.61
+// @version      0.9.62
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -707,28 +707,32 @@
     return Array.from(els).map(cardFromEl);
   }
 
+  // 出牌区：返回 null = 读不到（营地还没渲染），调用方自己兜底；
+  // 返回空数组 = 真的没牌。这两件事必须分开：回合初出牌区本来就是空的，
+  // 若因为「空」就回退到 gamedatas.players[].play，会把上一回合的牌又摆回来。
   function readPlayFrom(src, pid) {
     const gu = src.win && src.win.gameui;
-    if (!gu) return [];
+    if (!gu) return null;
     const who = String(pid != null ? pid : gu.player_id);
-    // 出牌区以 DOM 为准：updatePlay 把 gamedatas.players[那个玩家].play 渲染进 .camp-<id>，
-    // 手牌带 .hand、牌堆带 .deck，两者之外的 card-outer 就是本轮已出的牌。
-    // （gamedatas 里的数组引用会被 restoreServerGameState 换掉，DOM 没这个问题）
+    const camp = src.doc.querySelector('.camp-' + who);
+    if (!camp) {
+      // 营地还没出来：退回 gamedatas（服务端可能发的是对象而不是数组，两种都收）
+      const gd = gu.gamedatas;
+      const p = gd && gd.players && gd.players[who];
+      const raw = p && p.play;
+      if (!raw) return null;
+      const list = Array.isArray(raw) ? raw : Object.keys(raw).map((k) => raw[k]);
+      return list.filter(Boolean).map(handCardView);
+    }
+    // 手牌带 .hand、牌堆带 .deck，两者之外的 card-outer 就是本轮已出的牌
     const out = [];
-    Array.from(src.doc.querySelectorAll('.camp-' + who + ' .card-outer')).forEach((el) => {
+    Array.from(camp.querySelectorAll('.card-outer')).forEach((el) => {
       const cl = el.classList;
       if (cl.contains('hand') || cl.contains('deck')) return;
       if (!el.dataset.cardtype) return;   // 还没渲染完的过渡节点
       out.push(cardFromEl(el));
     });
-    if (out.length) return out;
-    // 兜底：还没渲染出 DOM 时读 gamedatas（服务端可能发的是对象而不是数组，两种都收）
-    const gd = gu.gamedatas;
-    const p = gd && gd.players && gd.players[who];
-    const raw = p && p.play;
-    if (!raw) return [];
-    const list = Array.isArray(raw) ? raw : Object.keys(raw).map((k) => raw[k]);
-    return list.filter(Boolean).map(handCardView);
+    return out;
   }
 
   // 手牌和出牌区一起读：两边任一个变了就算新快照
@@ -740,7 +744,7 @@
       try {
         const cards = readHandFrom(src);
         if (!cards) return null;
-        return { cards, played: readPlayFrom(src) };
+        return { cards, played: readPlayFrom(src) || [] };
       } catch (e) { return null; }
     };
     const fromGiven = trySrc(fr);
@@ -1021,7 +1025,8 @@
     if (mode === 'player' && fr.win.gameui) {
       if (!deckKeyStr) deckKeyStr = deckStorageKey(fr.win.gameui);
       const dTotal = deckAmtOf(doc, String(fr.win.gameui.player_id));
-      readPlayFrom(fr, mePid).forEach((c) => roundPlayedIds.add(c.id));
+      const domPlayMe = fr ? readPlayFrom(fr, mePid) : null;
+      (domPlayMe || []).forEach((c) => roundPlayedIds.add(c.id));
       deckSync(dTotal);
     }
 
@@ -1030,7 +1035,7 @@
       const pid = playerKey(key);
       // 出牌区以 DOM 为准：gamedatas 的 play 数组有时是旧的（restoreServerGameState 换过引用），
       // 已经放逐的牌会从旧数组里被每帧重新加回牌库。DOM 是渲染结果，移除的牌不会留在里面。
-      const domPlay = fr ? readPlayFrom(fr, pid) : [];
+      const domPlay = fr ? (readPlayFrom(fr, pid) || []) : [];
       const playSrc = domPlay.length ? domPlay : (p.play || []);
       // 观战日志模式：牌库由日志维护，fear 由日志计数，跳过 play/hand 的 fear 双计
       (p.hand || []).forEach((c) => { if (isLogMode && c.type === 'fear') return; rememberCard(pid, c); });
@@ -1078,7 +1083,7 @@
     // 对局模式下永远给一个 board：手牌空了就是空数组，不能变成 null，
     // 否则下面「牌库 = 已见 − 手牌 − 已出」会因为拿不到手牌而整段失效
     const board = mode === 'player'
-      ? (readBoard(fr) || { cards: [], played: fr ? readPlayFrom(fr, mePid) : [] })
+      ? (readBoard(fr) || { cards: [], played: (fr && readPlayFrom(fr, mePid)) || [] })
       : null;
     if (board) trackHand(round, board);
 
@@ -1311,7 +1316,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.61</span>
+        <span class="ap-ver">v0.9.62</span>
       </div>`;
     document.body.appendChild(el);
 
