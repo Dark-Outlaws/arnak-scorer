@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.65
+// @version      0.9.66
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -724,15 +724,19 @@
     });
   }
 
+  // 手牌：先看 DOM，再看 gameui.hand。
+  // 神器效果抽牌（水晶耳环这类）偶尔会让数组与渲染不同步，DOM 才是玩家看到的那份。
   function readHandFrom(src) {
     const gu = src.win && src.win.gameui;
     if (!gu) return null;
-    if (Array.isArray(gu.hand)) return gu.hand.map(handCardView);
-    // 兜底：DOM。updateHand 给手牌外框挂 .hand，外层带 data-cardtype（fear 的 num 是 "null" 字符串）
     const me = String(gu.player_id);
-    const els = src.doc.querySelectorAll('.camp-' + me + ' .card-outer.hand');
-    if (!els.length) return null;
-    return Array.from(els).map(cardFromEl);
+    const camp = src.doc.querySelector('.camp-' + me);
+    if (camp) {
+      const els = camp.querySelectorAll('.card-outer.hand');
+      if (els.length) return Array.from(els).map(cardFromEl);
+    }
+    if (Array.isArray(gu.hand)) return gu.hand.map(handCardView);
+    return null;
   }
 
   // 出牌区：返回 null = 读不到（营地还没渲染），调用方自己兜底；
@@ -1344,7 +1348,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.65</span>
+        <span class="ap-ver">v0.9.66</span>
       </div>`;
     document.body.appendChild(el);
 
@@ -1814,6 +1818,27 @@
       console.log('[arnak-scorer] 最近调用：', (s.win.__arnakHookLog || []).slice(-10));
       out.push({ win: s.win === window ? 'self' : 'other', rows, log: (s.win.__arnakHookLog || []).slice(-10) });
     });
+    return out;
+  };
+
+  // 恐惧账目诊断：手牌/弃牌/各计数器分别是多少
+  window.__arnakFear = function () {
+    const st = lastState;
+    const me = st && st.players.find((x) => x.isMe);
+    if (!me) { console.log('[arnak-scorer] 不是自己的对局'); return null; }
+    const d = me.cardDetail || {};
+    const out = {
+      恐惧总数: d.fearCount,
+      日志新增: (fearGained.get(me.id) || new Set()).size,
+      日志移除: (fearExiled.get(me.id) || new Set()).size,
+      已见fear: seenSet(me.id).fears.size,
+      终局值: finalFear.has(me.id) ? finalFear.get(me.id) : null,
+      手牌里有几张: (st.hand || []).filter((c) => c.kind === 'fear').length,
+      弃牌里有几张: (me.played || []).filter((c) => c.kind === 'fear').length,
+      手牌: (st.hand || []).map((c) => c.name),
+      弃牌: (me.played || []).map((c) => c.name),
+    };
+    console.log('[arnak-scorer] 恐惧账目', out);
     return out;
   };
 
