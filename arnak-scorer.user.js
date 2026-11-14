@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.64
+// @version      0.9.65
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -597,7 +597,9 @@
     const m = playByRound.get(pid);
     if (!m.has(roundNo)) m.set(roundNo, []);
     const arr = m.get(roundNo);
-    const view = handCardView({ type: t, num: card.num, id: t + ':' + card.num + ':' + arr.length });
+    // 日志里起始牌回来的是 {type:'basic', kind:'fund'|'explore'}，没有 num；
+    // handCardView 把 basic 的子类型存在 "num" 位上，所以这里要把 kind 搬过去
+    const view = handCardView({ type: t, num: (t === 'basic' ? card.kind : card.num), id: t + ':' + card.num + ':' + arr.length });
     // 物品/神器一牌一版，同轮重复出现只记一次；
     // 资金/探索/恐惧 是成对的，打两张就要显两张，不能按 type:num 合并
     if (view.type === 'item' || view.type === 'art') {
@@ -1342,7 +1344,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.64</span>
+        <span class="ap-ver">v0.9.65</span>
       </div>`;
     document.body.appendChild(el);
 
