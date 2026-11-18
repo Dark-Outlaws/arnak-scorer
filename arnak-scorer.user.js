@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.66
+// @version      0.9.67
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -215,12 +215,14 @@
     }
   }
 
-  // 记一笔「这张已经放逐了」：从已见里抹掉，并阻止它从陈旧快照里复活
+  // 记一笔「这张已经放逐了」：从已见里抹掉，并阻止它从陈旧快照里复活；
+  // 牌堆模型里也要抹掉，否则它会永远卡在某个位置上
   function markExiled(pid, key) {
     if (!key) return;
     seenSet(pid).cards.delete(key);
     if (!exileKeys.has(pid)) exileKeys.set(pid, new Set());
     exileKeys.get(pid).add(key);
+    if (mePid != null && pid === mePid) deckRemoveKey(key);
   }
 
   // 恐惧卡数：终局（showAllCards）用服务端精确值；实时 = 初始 2 + 新增获得 − 移除
@@ -828,7 +830,7 @@
     let table = '';
     try { const m = String(location.search).match(/[?&]table=(\d+)/); table = m ? m[1] : ''; } catch (e) { /* ignore */ }
     const pid = gu && gu.player_id != null ? String(gu.player_id) : '';
-    return 'arnak_deck_v3_' + table + '_' + pid;
+    return 'arnak_deck_v4_' + table + '_' + pid;
   }
 
   function deckSave() {
@@ -870,6 +872,10 @@
 
   function deckPush(card, atTop) {
     if (!deckSeeded || !card) return;
+    // 同一张牌已经被放过一次了：效果牌会反复把手里/弃牌区的牌往牌堆顶放，
+    // 不能每放一次就多出一张
+    const key = card.type + ':' + card.num;
+    if (deckSegs.some((s) => s.cards && s.cards.some((c) => c.type + ':' + c.num === key))) return;
     if (atTop) {
       const top = deckSegs[deckSegs.length - 1];
       if (top && top.cards) top.cards.push(card);
@@ -880,6 +886,23 @@
       else deckSegs.unshift({ cards: [card] });
     }
     deckSave();
+  }
+
+  // 把某张牌从牌堆模型里抹掉（放逐时用）
+  function deckRemoveKey(key) {
+    if (!deckSeeded || !key) return;
+    let changed = false;
+    for (const seg of deckSegs) {
+      if (!seg.cards) continue;
+      const n = seg.cards.length;
+      seg.cards = seg.cards.filter((c) => c.type + ':' + c.num !== key);
+      if (seg.cards.length !== n) changed = true;
+    }
+    if (deckSegs.some((s) => s.cards && !s.cards.length)) {
+      deckSegs = deckSegs.filter((s) => !(s.cards && !s.cards.length));
+      changed = true;
+    }
+    if (changed) deckSave();
   }
 
   function deckDraw(id) {
@@ -1348,7 +1371,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.66</span>
+        <span class="ap-ver">v0.9.67</span>
       </div>`;
     document.body.appendChild(el);
 
