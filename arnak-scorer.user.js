@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         阿纳克实时计分 (Arnak Live Scorer)
 // @namespace    arnak.live.scorer
-// @version      0.9.67
+// @version      0.9.68
 // @description  BGA《失落的阿纳克遗迹》：常驻浮窗显示所有玩家实时终局分（基础版，鸟庙/蛇庙）
 // @author       浮沉 & hanako
 // @homepageURL  https://github.com/Dark-Outlaws/arnak-scorer
@@ -525,6 +525,13 @@
     // （打出被撤销时牌是回到手里，仍然属于你，不能从牌库里删）
     if (packs.some((P) => P.undo.test(text))) {
       if (ownershipAction.get(pid)) { popRestore(pid); ownershipAction.delete(pid); }
+      // 上一动是「打出」：把这条从本轮出牌记录里撒掉（牌回手里了，不算出过）
+      if (lastAct.get(pid) === 'play') {
+        const m = playByRound.get(pid);
+        const arr = m && m.get(roundLogCount + 1);
+        if (arr && arr.length) arr.pop();
+      }
+      lastAct.delete(pid);
       return;
     }
     const card = cardOf(logEl, text);
@@ -532,6 +539,7 @@
     if (TOK.buyVerb.test(text) && TOK.deckWord.test(text)) {
       pushSnapshot(pid);
       ownershipAction.set(pid, true);
+      lastAct.set(pid, 'buy');
       if (card) {
         // 又买了一张同名牌：之前放逐的那张不再代表现在，解除封锁
         const ex = exileKeys.get(pid);
@@ -545,6 +553,7 @@
     // 打出：牌只是换了位置（手牌 → 已打出区），归属没变，不压栈
     if (TOK.play.test(text)) {
       ownershipAction.set(pid, false);
+      lastAct.set(pid, 'play');
       if (card) {
         rememberCard(pid, { type: card.type, num: card.num });
         notePlay(pid, card, roundLogCount + 1);
@@ -555,6 +564,7 @@
     if (TOK.exile.test(text)) {
       pushSnapshot(pid);
       ownershipAction.set(pid, true);
+      lastAct.set(pid, 'exile');
       const kind = card
         ? (card.type === 'fear' ? 'fear' : (card.kind || null))
         : basicKindOf(text, packs);
@@ -590,6 +600,9 @@
   // 每个玩家每轮打出的牌：pid -> Map(roundNo -> [cardView])
   // 对手那栏靠它显示「上一回合打了什么」，数据来自日志，回放/观战一样有
   const playByRound = new Map();
+
+  // 每个玩家最后一条动作的类型：undo 靠它判断该不该撒回出牌记录
+  const lastAct = new Map();
 
   function notePlay(pid, card, roundNo) {
     if (!card || !card.type) return;
@@ -631,6 +644,7 @@
       logProcessed = new Set();
       roundLogCount = 0;
       playByRound.clear();
+      lastAct.clear();
       exileKeys.clear();
     }
     logInitialScan = !logInited || rebuilding;
@@ -1371,7 +1385,7 @@
       <div class="ap-detail"></div>
       <div class="ap-foot">
         <span class="ap-round"></span>
-        <span class="ap-ver">v0.9.67</span>
+        <span class="ap-ver">v0.9.68</span>
       </div>`;
     document.body.appendChild(el);
 
